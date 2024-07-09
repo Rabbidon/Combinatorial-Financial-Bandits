@@ -42,24 +42,25 @@ with gp.Env(empty=True) as env:
             x = m.addMVar(len(df.columns)-1, lb=l, ub=0.3, vtype=gp.GRB.SEMICONT,  name="x")
             b = m.addMVar(len(df.columns)-1, vtype=gp.GRB.BINARY, name="b")
             
-            m.addConstr((x*b).sum() == 1, name="Budget_Constraint")
-            m.addConstr(x >= l*b, name="Indicator")
+            m.addConstr(x.sum() == 1, name="Budget_Constraint")
+            m.addConstr(x >= l*b, name="Minimal Position")
+            m.addConstr(x <= b, name="Indicator")
 
             m.addConstr(b.sum() >= 5, "Cardinality")
             
-            m.setObjective((x*b) @ ucb, gp.GRB.MAXIMIZE)
+            m.setObjective(x @ ucb, gp.GRB.MAXIMIZE)
         
             m.optimize()
             m.update()
             
-            greedy_allocation = x.X*b.X
+            greedy_allocation = x.X
             
             reward = row_data @ greedy_allocation
             
             for i in range(len(df.columns)-1):
                 if greedy_allocation[i]>0:
                     num_pulls[i] += 1
-                    emp_means[i] += (reward - emp_means[i])/num_pulls[i]
+                    emp_means[i] += (row_data[i] - emp_means[i])/num_pulls[i]
                 if num_pulls[i]>0:
                     ucb[i] = emp_means[i] + constant*np.sqrt(2 * np.log(time) / num_pulls[i])
             
