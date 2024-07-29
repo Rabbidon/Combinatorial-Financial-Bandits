@@ -7,7 +7,7 @@
 
 import numpy as np
 
-import dataloader
+import helper
 
 import gurobipy as gp
 
@@ -16,9 +16,9 @@ with gp.Env(empty=True) as env:
     env.setParam('OutputFlag', 0)
     env.start()
 
-    def UCB(constant=1e-3):
+    def UCB(constant=1e-2):
         
-        df = dataloader.import_hf_data()
+        df = helper.import_hf_data()
         # We want to maintain a count
         
         ucb = np.ones(len(df.columns)-1)
@@ -34,6 +34,7 @@ with gp.Env(empty=True) as env:
             row_data = row[1].values[1:]
             
             time+=1
+            print(time)
             # generate bernoulli reward from the picked greedy arm
             
             m = gp.Model(env=env)
@@ -69,7 +70,7 @@ with gp.Env(empty=True) as env:
         
     def random():
         
-        df = dataloader.import_hf_data()
+        df = helper.import_preqin_data()
         reward = 0
         
         for row in df.iterrows():
@@ -82,7 +83,7 @@ with gp.Env(empty=True) as env:
     
     def oracle():
     
-        df = dataloader.import_hf_data()
+        df = helper.import_preqin_data()
         total_reward = 0
         
         for row in df.iterrows():
