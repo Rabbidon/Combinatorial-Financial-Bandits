@@ -9,6 +9,7 @@ import numpy as np
 
 import helper
 
+import matplotlib.pyplot as plt
 import gurobipy as gp
 
 with gp.Env(empty=True) as env:
@@ -16,9 +17,9 @@ with gp.Env(empty=True) as env:
     env.setParam('OutputFlag', 0)
     env.start()
 
-    def UCB(constant=1e-2):
+    def UCB(constant=3e-3):
         
-        df = helper.import_hf_data()
+        df = helper.import_preqin_data()
         # We want to maintain a count
         
         ucb = np.ones(len(df.columns)-1)
@@ -28,6 +29,7 @@ with gp.Env(empty=True) as env:
         time = 0
         
         ucb_reward = 0
+        time_series = []
         
         for row in df.iterrows():
             
@@ -38,16 +40,17 @@ with gp.Env(empty=True) as env:
             # generate bernoulli reward from the picked greedy arm
             
             m = gp.Model(env=env)
-            l = 0.1
+            l = 0.05
 
-            x = m.addMVar(len(df.columns)-1, lb=l, ub=0.3, vtype=gp.GRB.SEMICONT,  name="x")
+            x = m.addMVar(len(df.columns)-1, lb=l, ub=0.4, vtype=gp.GRB.SEMICONT,  name="x")
             b = m.addMVar(len(df.columns)-1, vtype=gp.GRB.BINARY, name="b")
             
             m.addConstr(x.sum() == 1, name="Budget_Constraint")
             m.addConstr(x >= l*b, name="Minimal Position")
             m.addConstr(x <= b, name="Indicator")
 
-            m.addConstr(b.sum() >= 5, "Cardinality")
+            m.addConstr(b.sum() >= 3, "Cardinality")
+            m.addConstr(b.sum() <= 10, "Upper Cardinality")
             
             m.setObjective(x @ ucb, gp.GRB.MAXIMIZE)
         
@@ -66,7 +69,8 @@ with gp.Env(empty=True) as env:
                     ucb[i] = emp_means[i] + constant*np.sqrt(2 * np.log(time) / num_pulls[i])
             
             ucb_reward += reward
-        return (ucb_reward,constant)
+            time_series.append(ucb_reward)
+        return (time_series,constant)
         
     def random():
         
@@ -93,7 +97,7 @@ with gp.Env(empty=True) as env:
             # generate bernoulli reward from the picked greedy arm
             
             m = gp.Model(env=env)
-            l = 0.1
+            l = 0.05
 
             x = m.addMVar(len(df.columns)-1, lb=l, ub=0.3, vtype=gp.GRB.SEMICONT,  name="x")
             b = m.addMVar(len(df.columns)-1, vtype=gp.GRB.BINARY, name="b")
@@ -101,7 +105,8 @@ with gp.Env(empty=True) as env:
             m.addConstr((x*b).sum() == 1, name="Budget_Constraint")
             m.addConstr(x >= l*b, name="Indicator")
 
-            m.addConstr(b.sum() >= 5, "Cardinality")
+            m.addConstr(b.sum() >= 3, "Cardinality")
+            m.addConstr(b.sum() <= 10, "Upper Cardinality")
             
             m.setObjective((x*b) @ row_data, gp.GRB.MAXIMIZE)
         
@@ -120,11 +125,13 @@ with gp.Env(empty=True) as env:
     greedy = UCB(0)
     random_reward = random()
     oracle_reward = oracle()
-
-    print(ucb)
-    print(greedy)
-    print(random_reward)
-    print(oracle_reward)
+    
+    print(ucb[0][-1])
+    print(greedy[0][-1])
+    
+    plt.plot(range(len(ucb[0])),ucb[0])
+    plt.plot(range(len(ucb[0])),greedy[0])  
+    plt.show()
             
         
     # Now what?

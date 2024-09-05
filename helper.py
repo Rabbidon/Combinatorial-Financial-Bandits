@@ -22,6 +22,10 @@ def import_cpi_data():
     df = pd.read_csv("data/CPI.csv")
     return df
 
+def import_fama_french():
+    df = pd.read_csv("data/fama_french.csv")
+    return df
+
 # We want a mechanism to compute inflation given a lookup table
 
 def compute_inflation(cpi_dict,dt):
@@ -31,6 +35,11 @@ def compute_inflation(cpi_dict,dt):
     cpi_initial = cpi_dict[time_initial]["CPI"]
     return (cpi_final-cpi_initial)/cpi_initial
 
+def get_fama_french(fama_french,dt):
+    
+    prior_month = (dt - relativedelta(month=1)).strftime("%Y%m")
+    return fama_french.loc[int(prior_month)].values
+    # This should return a vetor I guess
 # One-time preqin data handling code
 
 '''    
